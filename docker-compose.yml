@@ -1,0 +1,75 @@
+version: '3.7'
+services:
+  app:
+    build: ./app
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "6010:8000"
+    volumes:
+      - ./app/:/usr/src/app/
+    depends_on:
+      - "db"
+    env_file:
+      - ./envs/.env
+    restart: on-failure
+  celery:
+    build: ./app
+    command: celery -A autoparts worker -l info
+    volumes:
+      - ./app/:/usr/src/app/
+    depends_on:
+      - "app"
+      - "db"
+      - "redis"
+    env_file:
+      - ./envs/.env
+  flower:
+    image: mher/flower:0.9.5
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379
+      - FLOWER_PORT=8888
+    ports:
+      - "6011:8888"
+  redis:
+    image: redis:6
+    expose:
+      - 6379
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    restart: always
+  db:
+    image: postgres:12
+    ports:
+      - "6013:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: always
+    environment:
+      - POSTGRES_USER=autoparts
+      - POSTGRES_PASSWORD=autoparts
+      - POSTGRES_DB=autoparts
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "6014:5050"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=autoparts@localhost
+      - PGADMIN_DEFAULT_PASSWORD=autoparts
+      - PGADMIN_LISTEN_PORT=5050
+  hge:
+    image: hasura/graphql-engine:v1.3.3
+    ports:
+      - "6015:8080"
+    depends_on:
+      - "db"
+    restart: always
+    environment:
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://autoparts:autoparts@db:/autoparts
+      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=startup, http-log, webhook-log, websocket-log, query-log
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+      - HASURA_GRAPHQL_DEV_MODE=true
+      - HASURA_GRAPHQL_ADMIN_SECRET=password
+volumes:
+  db-data:
+  redis-data:

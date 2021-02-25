@@ -1,0 +1,75 @@
+{% extends "ebay/base.html" %}
+{% block page_heading %}{% endblock %}
+{% block title %}Search{% endblock %}
+{% block content %}
+    <div class="container mx-auto py-4">
+        {% if error_messages %}
+            {% for error_message in error_messages %}
+                <p class="p-4 bg-red-100 font-light mb-4">{{ error_message }}</p>
+            {% endfor %}
+        {% endif %}
+        <form action="" method="get">
+            <div class="flex w-full">
+                <input type="search" class="w-full py-2 px-4 shadow-md ring-1 outline-none font-light" id="id_search"
+                       name="query" aria-describedby="inputNameHelp"
+                       placeholder="Search" value="{{ form.query }}">
+                <button type="submit"
+                        class="w-96 py-2 px-4 bg-blue-500 text-white font-light shadow-md outline-none ring-1">
+                    Submit
+                </button>
+            </div>
+            {% if response and not error_messages %}
+                <label for="per_page">Per page</label>
+                <select class="ring-1 ring-black-500" name="per_page" id="per_page" onchange="this.form.submit();">
+                    <option value="1" {% if form.per_page == 1 %}selected{% endif %}>1</option>
+                    <option value="10" {% if form.per_page == 10 %}selected{% endif %}>10</option>
+                    <option value="50" {% if form.per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if form.per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+{# TODO: it increases page laoding time, we need create links or something else instead of select #}
+{#                <label for="page">Page</label>#}
+{#                <select class="ring-1 ring-black-500" name="page" id="page" onchange="this.form.submit()">#}
+{#                    {% load ebay_filters %}#}
+{#                    {% for page in response.paginationOutput.totalPages|times %}#}
+{#                        <option value="{{ page }}" {% if form.page == page %}selected{% endif %}>{{ page }}</option>#}
+{#                    {% endfor %}#}
+{#                </select>#}
+            {% endif %}
+        </form>
+        {% if response and not error_messages %}
+            <div class="">
+                <p>Page: {{ response.paginationOutput.pageNumber }}/{{ response.paginationOutput.totalPages }}</p>
+                <p>Per
+                    page/Total: {{ response.paginationOutput.entriesPerPage }}/{{ response.paginationOutput.totalEntries }}</p>
+            </div>
+            <table class="table-fixed border-separate border border-black">
+                <thead>
+                <tr class="text-left border-1 border-black-500">
+                    <th class="w-1/6 border border-black-500">image</th>
+                    <th class="w-1/10 border border-black-500">id</th>
+                    <th class="w-1/4 border border-black-500">title</th>
+                    <th class="w-1/6 border border-black-500">price</th>
+                    <th class="w-1/6 border border-black-500">location</th>
+                    <th class="w-1/6 border border-black-500">condition</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in response.searchResult.item %}
+                    <tr class="border border-black-500">
+                        <td class="border border-black-500">
+                            <img class="object-cover" width="140" height="140" src="{{ item.galleryURL }}">
+                        </td>
+                        <td class="border border-black-500">{{ item.itemId }}</td>
+                        <td class="border border-black-500">
+                            <a href="{{ item.viewItemURL }}" class="underline" target="_blank">{{ item.title }}</a>
+                        </td>
+                        <td class="border border-black-500">{{ item.sellingStatus.currentPrice.value }}</td>
+                        <td class="border border-black-500">{{ item.location }}</td>
+                        <td class="border border-black-500">{{ item.condition.conditionDisplayName }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+{% endblock %}
