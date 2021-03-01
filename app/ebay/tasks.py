@@ -3,44 +3,51 @@ from celery import shared_task
 from ebay.models import Product
 from ebay.utils import generate_hash
 from ebaysdk.finding import Connection as Finding
+from browseapi.containers import ItemSummary
 
 
 @shared_task
-def call_ebay(app_id, data, per_page_limit, owner_id, search_id):
-    api = Finding(appid=app_id, config_file=None)
+def call_ebay(api, data, per_page_limit, owner_id, search_id):
+
     for n in range(per_page_limit):
-        data["paginationInput"]["pageNumber"] = n + 1
-        response = api.execute('findItemsAdvanced', data)
-        if response.reply.ack in ['Failure', 'PartialFailure']:
-            print(response.dict()['errorMessage']['error']['message'])
+        data["offset"] = data["limit"] * (n + 1)
+        try:
+            response = api.execute('search', data)
+        except Exception as err:
+            print(err)
             continue
-        save_items.apply_async((response.dict(), data["keywords"], owner_id, search_id))
+        save_items.apply_async((response[0], data["keywords"], owner_id, search_id))
 
 
 @shared_task
 def save_items(results, keywords, owner_id, search_id):
-    items = results.get('searchResult').get('item')
-    for product in items:
+    for product in results.itemSummaries:
         create_product.apply_async((product, search_id))
 
 
 @shared_task
-def create_product(product: dict, search_id) -> str:
+def create_product(product: ItemSummary, search_id) -> str:
     # TODO: Create some sort of serializer/deserializer
-    ebay_id = product['itemId']
+    ebay_id = product.itemId
+    location = ''
+    for key in 'addressLine1', 'addressLine2', 'city', 'country', 'county', 'stateOrProvince', 'postalCode':
+        if getattr(product.itemLocation, key, None):
+            location += getattr(product.itemLocation, key)
+            location += ', '
     p_map = {
         "ebay_id": ebay_id,
-        "title": product['title'],
-        "location": product['location'],
-        "condition": product['condition']['conditionDisplayName'],
-        "price": product['sellingStatus']['currentPrice']['value'],
-        "url": product['viewItemURL'],
-        "thumbnail_url": product['galleryURL'] if 'galleryURL' in product else None,
+        "title": product.title,
+        "location": location,
+        "condition": product.condition,
+        "price": product.price.value if product.price else None,
+        "url": product.itemAffiliateWebUrl if product.itemAffiliateWebUrl else product.itemWebUrl,
+        "thumbnail_url": product.thumbnailImages[0].imageUrl if product.thumbnailImages else None,
+        # TODO: drop it if will not necessary
         # ebay returns string representation so we need to convert to bool
-        "top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
+        #"top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
         # ebay returns string representation so we need to convert to bool
-        "buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
-        "country": product['country']
+        #"buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
+        "country": product.itemLocation.country if product.itemLocation and product.itemLocation.country else None,
     }
     hash = generate_hash(str(p_map))
     p_map["search_id"] = search_id
@@ -59,6 +66,8 @@ def fetch_product_details(product_id):
         product = Product.objects.get(pk=product_id)
         single_item = es.get_item(item_id=product.ebay_id)['Item']
         product.description = single_item['Description']
+        product.top_rated_seller = True if single_item['sellerInfo']['topRatedSeller'] == "true" else False
+        product.buy_it_now = True if single_item['buyItNowAvailable'] == "true" else False
         product.save()
         # Uncomment this part for additional product images fetching
         # gallery = single_item['PictureURL']

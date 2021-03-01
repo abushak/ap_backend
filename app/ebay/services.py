@@ -3,7 +3,7 @@ from ebay.models import Credential
 from django.utils.translation import gettext_lazy as _
 from ebay.tasks import call_ebay
 from django.conf import settings
-
+from browseapi import BrowseAPI
 from ebaysdk.finding import Connection as Finding
 
 
@@ -12,6 +12,7 @@ class EbayService:
     EbayService
     """
     app_id: str
+    cert_id: str
     auto_save: bool
     per_page_limit = 100
     pages_limit = 3
@@ -21,7 +22,7 @@ class EbayService:
         :param auto_save:
         """
         self.auto_save = auto_save
-        self.app_id = self.check_credentials()
+        self.app_id, self.cert_id = self.check_credentials()
 
     @staticmethod
     def check_credentials():
@@ -30,7 +31,9 @@ class EbayService:
         """
         try:
             credentials = Credential.objects.get(is_primary=True)
-            return credentials.app_id
+            if not credentials.cert_id:
+                raise EbayServiceError(_("At least one primary Credential required"))
+            return credentials.app_id, credentials.cert_id
         except (KeyError, Credential.DoesNotExist):
             raise EbayServiceError(_("At least one primary Credential required"))
 
@@ -40,46 +43,39 @@ class EbayService:
         :param per_page:
         :param page:
         :param owner:
+        :param item_filter: doesn't use in browse API. TODO: delete in feature
         :return:
         """
         try:
-            api = Finding(appid=self.app_id, config_file=None)
-            data = {
-                'keywords': keywords,
-                'categoryId': settings.EBAY_SEARCH_CATEGORIES,
-                'paginationInput': {
-                    'entriesPerPage': 100,
-                    'pageNumber': 1
-                },
-                'affiliate': {
-                    'networkId': 9,
-                    'trackingId': 5338731488
-                },
-                'domainFilter': '',
-                'sortOrder': 'BestMatch',
-                'outputSelector': ['AspectHistogram', 'CategoryHistogram', 'ConditionHistogram', 'SellerInfo'],
-            }
-            if item_filter is not None:
-                data['itemFilter'] = item_filter
+
+            data = [{
+                'q': keywords,
+                'limit': self.per_page_limit,
+                'category_ids': '6000',
+                'fieldgroups': 'EXTENDED,MATCHING_ITEMS',
+                'aspect_filter': 'categoryId:6030',
+            }]
+
             if sort_order is not None:
-                data['sortOrder'] = sort_order
+                data['sort'] = sort_order
             if zipcode is not None:
-                data['buyerPostalCode'] = zipcode
-            pagination_totals = self.pagination_totals(data=data)
+                api = BrowseAPI(self.app_id, self.cert_id, partner_id="5338731488", zip_code=zipcode)
+            else:
+                api = BrowseAPI(self.app_id, self.cert_id, partner_id="5338731488")
+
+            pagination_totals = self.pagination_totals(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
-            call_ebay.apply_async((self.app_id, data, self.per_page_limit, owner_id, search_id), countdown=0.00167)
+
+            call_ebay.apply_async((api, data, self.per_page_limit, owner_id, search_id), countdown=0.00167)
 
             return True
         except ConnectionError as error:
             raise EbayServiceError(error)
 
-    def pagination_totals(self, data):
-        api = Finding(appid=self.app_id, config_file=None)
-        response = api.execute('findItemsAdvanced', data)
-        if response.reply.ack in ['Failure', 'PartialFailure']:
-            raise EbayServiceError(response.dict()['errorMessage']['error']['message'])
-        max_response_pages = int(response.dict()["paginationOutput"]["totalPages"])
+    def pagination_totals(self, api, data):
+        response = api.execute('search', data)
+        max_response_pages = int(response[0].total)
         if max_response_pages == 0:
             raise EbayServiceError("No products found using provided query")
         return max_response_pages

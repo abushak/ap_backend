@@ -23,6 +23,19 @@ class Credential(CoreModel):
         verbose_name=_("AppID/ClientID"),
         help_text=_("AppID/ClientID that will be used to perform eBay API requests. Max. length 40 characters.")
     )
+    cert_id = models.CharField(
+        max_length=40,
+        unique=True,
+        # TODO: change on blank False, null=False, when db will ready.
+        blank=True,
+        null=True,
+        # default=None, null=False trick used here to work around with known
+        # Django's `get_default` empty string that creates instance with empty-string
+        # CharField avoiding any validation. So you are able get get an exception making Model.objects.create()
+        default=None,
+        verbose_name=_("CertID"),
+        help_text=_("CertID that will be used to perform eBay API requests. Max. length 40 characters.")
+    )
     is_primary = models.BooleanField(
         default=False,
         verbose_name=_("Primary"),
