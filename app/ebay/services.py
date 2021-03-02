@@ -51,7 +51,7 @@ class EbayService:
             data = [{
                 'q': keywords,
                 'limit': self.per_page_limit,
-                'category_ids': '6000',
+                'category_ids': settings.EBAY_SEARCH_CATEGORY,
                 'fieldgroups': 'EXTENDED,MATCHING_ITEMS',
                 'aspect_filter': 'categoryId:6030',
             }]

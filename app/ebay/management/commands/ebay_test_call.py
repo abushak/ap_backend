@@ -27,7 +27,7 @@ class Command(BaseCommand):
     def call_ebay(self):
         request_data = {
             'keywords': ['VW Jetta 2019 front hood'],
-            'categoryId': settings.EBAY_SEARCH_CATEGORIES,
+            'categoryId': settings.EBAY_SEARCH_CATEGORY,
             'affiliate': {
                 'networkId': 9,
                 'trackingId': 5338731488
