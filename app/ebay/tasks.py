@@ -4,51 +4,58 @@ from ebay.models import Product
 from ebay.utils import generate_hash
 from ebaysdk.finding import Connection as Finding
 from browseapi.containers import ItemSummary
+from browseapi import BrowseAPI
 
 
 @shared_task
-def call_ebay(api, data, per_page_limit, owner_id, search_id):
-
+def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, owner_id, search_id):
+    api = BrowseAPI(app_id, cert_id, **browse_api_parameters)
     for n in range(per_page_limit):
-        data["offset"] = data["limit"] * (n + 1)
+        data[0]["offset"] = data[0]["limit"] * (n + 1)
         try:
             response = api.execute('search', data)
         except Exception as err:
             print(err)
             continue
-        save_items.apply_async((response[0], data["keywords"], owner_id, search_id))
+
+        if not len(response):
+            continue
+
+        for product in response[0].itemSummaries:
+            # TODO: Create some sort of serializer/deserializer
+            # itemId return string in format "v1|id|0", make sure that in other versions of the api the same
+            try:
+                ebay_id = product.itemId.split('|')[1]
+            except Exception as err:
+                print(err)
+                continue
+
+            location = ''
+            for key in 'addressLine1', 'addressLine2', 'city', 'country', 'county', 'stateOrProvince', 'postalCode':
+                if getattr(product.itemLocation, key, None):
+                    location += getattr(product.itemLocation, key)
+                    location += ', '
+            create_product.apply_async((
+            {
+                "ebay_id": ebay_id,
+                "title": product.title,
+                "location": location,
+                "condition": product.condition,
+                "price": product.price.value if product.price else None,
+                "url": product.itemAffiliateWebUrl if product.itemAffiliateWebUrl else product.itemWebUrl,
+                "thumbnail_url": product.thumbnailImages[0].imageUrl if product.thumbnailImages else None,
+                # TODO: drop it if will not necessary
+                # ebay returns string representation so we need to convert to bool
+                # "top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
+                # ebay returns string representation so we need to convert to bool
+                # "buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
+                "country": product.itemLocation.country \
+                    if product.itemLocation and product.itemLocation.country else None,
+            }, ebay_id, search_id))
 
 
 @shared_task
-def save_items(results, keywords, owner_id, search_id):
-    for product in results.itemSummaries:
-        create_product.apply_async((product, search_id))
-
-
-@shared_task
-def create_product(product: ItemSummary, search_id) -> str:
-    # TODO: Create some sort of serializer/deserializer
-    ebay_id = product.itemId
-    location = ''
-    for key in 'addressLine1', 'addressLine2', 'city', 'country', 'county', 'stateOrProvince', 'postalCode':
-        if getattr(product.itemLocation, key, None):
-            location += getattr(product.itemLocation, key)
-            location += ', '
-    p_map = {
-        "ebay_id": ebay_id,
-        "title": product.title,
-        "location": location,
-        "condition": product.condition,
-        "price": product.price.value if product.price else None,
-        "url": product.itemAffiliateWebUrl if product.itemAffiliateWebUrl else product.itemWebUrl,
-        "thumbnail_url": product.thumbnailImages[0].imageUrl if product.thumbnailImages else None,
-        # TODO: drop it if will not necessary
-        # ebay returns string representation so we need to convert to bool
-        #"top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
-        # ebay returns string representation so we need to convert to bool
-        #"buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
-        "country": product.itemLocation.country if product.itemLocation and product.itemLocation.country else None,
-    }
+def create_product(p_map, ebay_id, search_id) -> str:
     hash = generate_hash(str(p_map))
     p_map["search_id"] = search_id
     # TODO: Move product hash checking before single item fetching to avoid unnecessary requests

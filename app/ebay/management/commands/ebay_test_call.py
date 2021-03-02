@@ -1,9 +1,12 @@
 from django.core.management.base import BaseCommand
 from ebay.models import Credential
 from ebaysdk.finding import Connection as Finding
+from browseapi import BrowseAPI
 from django.conf import settings
 from json import dumps
 
+app_id = "IhorKash-AutoPart-PRD-3c8ec7f0e-9089209e"
+cert_id = "PRD-c8ec7f0e26cf-d7df-4cd6-aac6-775c"
 
 class Command(BaseCommand):
     help = "Test eBay call"
@@ -14,9 +17,12 @@ class Command(BaseCommand):
     pages_limit = 100
 
     def handle(self, *args, **options):
-        self.credential = Credential.objects.first()
-        self.api = Finding(appid=self.credential.app_id, config_file=None)
+        self.api = BrowseAPI(app_id, cert_id)
         self.call_ebay()
+
+        # self.credential = Credential.objects.first()
+        # self.api = Finding(appid=self.credential.app_id, config_file=None)
+        # self.call_ebay()
 
     def call_ebay(self):
         request_data = {
@@ -40,7 +46,8 @@ class Command(BaseCommand):
             'outputSelector': ['AspectHistogram', 'CategoryHistogram', 'ConditionHistogram', 'SellerInfo']
         }
 
-        response = self.api.execute('findItemsAdvanced', request_data)
+        respone = self.api.execute('search', [{keyword: request_data[keyword]} for keyword in request_data])
+        # response = self.api.execute('findItemsAdvanced', request_data)
 
         # Prints total found
         # print(response.dict()['paginationOutput']['totalEntries'])

@@ -119,6 +119,7 @@ class Product(CoreModel):
         help_text=_("All prices are in USD currency.")
     )
     url = models.URLField(
+        max_length=300,
         verbose_name=_("URL"),
         help_text=_("Product URL on eBay.")
     )

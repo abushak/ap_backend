@@ -57,17 +57,24 @@ class EbayService:
             }]
 
             if sort_order is not None:
-                data['sort'] = sort_order
-            if zipcode is not None:
-                api = BrowseAPI(self.app_id, self.cert_id, partner_id="5338731488", zip_code=zipcode)
-            else:
-                api = BrowseAPI(self.app_id, self.cert_id, partner_id="5338731488")
+                data[0]['sort'] = sort_order
 
+            browse_api_parameters = {
+                'partner_id': "5338731488",
+            }
+
+            if zipcode is not None:
+                browse_api_parameters['zip_code'] = zipcode
+
+            api = BrowseAPI(self.app_id, self.cert_id, **browse_api_parameters)
             pagination_totals = self.pagination_totals(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
 
-            call_ebay.apply_async((api, data, self.per_page_limit, owner_id, search_id), countdown=0.00167)
+            call_ebay.apply_async(
+                (self.app_id, self.cert_id, browse_api_parameters, data, self.per_page_limit, owner_id, search_id),
+                countdown=0.00167
+            )
 
             return True
         except ConnectionError as error:
