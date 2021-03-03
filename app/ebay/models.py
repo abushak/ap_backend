@@ -99,6 +99,8 @@ class Product(CoreModel):
         help_text=_("Max. length 80 characters.")
     )
     description = models.TextField(
+        null=True,
+        blank=True,
         verbose_name=_("Description"),
         help_text=_("May contain HTML tags.")
     )
@@ -155,6 +157,12 @@ class Product(CoreModel):
         max_length=2,
         null=True,
         help_text=_("ISO 3166 country code. Max. length 2 characters.")
+    )
+    brand_type = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("Brand type of the eBay item")
     )
 
     def __str__(self):

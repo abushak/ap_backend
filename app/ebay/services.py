@@ -3,7 +3,7 @@ from ebay.models import Credential
 from django.utils.translation import gettext_lazy as _
 from ebay.tasks import call_ebay
 from django.conf import settings
-from browseapi import BrowseAPI
+from .client import AutoCorrectBrowseAPI
 from ebaysdk.finding import Connection as Finding
 
 
@@ -66,7 +66,7 @@ class EbayService:
             if zipcode is not None:
                 browse_api_parameters['zip_code'] = zipcode
 
-            api = BrowseAPI(self.app_id, self.cert_id, **browse_api_parameters)
+            api = AutoCorrectBrowseAPI(self.app_id, self.cert_id, **browse_api_parameters)
             pagination_totals = self.pagination_totals(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
@@ -97,7 +97,7 @@ class EbayService:
             api = Shopping(appid=self.app_id, config_file=None)
             response = api.execute('GetSingleItem', {
                 'ItemID': item_id,
-                'IncludeSelector': 'Description'
+                'IncludeSelector': 'Details,ItemSpecifics'
             })
             if response.reply.Ack in ['Failure', 'PartialFailure']:
                 raise EbayServiceError(response.dict()['errorMessage']['error']['message'])
