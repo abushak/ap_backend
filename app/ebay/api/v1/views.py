@@ -54,6 +54,8 @@ class EbaySearch(APIView):
             try:
                 ebay.search(
                     keywords=request.data.get('query'),
+                    brand_types=request.data.get('brand_types', None),
+                    compatibility = request.data.get('compatibility', None),
                     item_filter=item_filter,
                     sort_order=request.data.get('sort_order', None),
                     owner_id=owner_id,

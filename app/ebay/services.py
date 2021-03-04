@@ -1,5 +1,6 @@
 from ebaysdk.exception import ConnectionError  # pylint: disable=redefined-builtin
-from ebay.models import Credential
+from ebay.models import Credential, BrandType
+from rest_framework.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from ebay.tasks import call_ebay
 from django.conf import settings
@@ -37,7 +38,8 @@ class EbayService:
         except (KeyError, Credential.DoesNotExist):
             raise EbayServiceError(_("At least one primary Credential required"))
 
-    def search(self, keywords, search_id, owner_id=None, item_filter=None, sort_order=None, zipcode=None):
+    def search(self, keywords, brand_types, compatibility, search_id,
+               owner_id=None, item_filter=None, sort_order=None, zipcode=None):
         """
         :param keywords:
         :param per_page:
@@ -47,14 +49,33 @@ class EbayService:
         :return:
         """
         try:
+            brand_types_filter = ''
+            if len(brand_types):
+                brand_types_filter = "{"
+                for id in brand_types:
+                    if not isinstance(id, int) and not BrandType.objects.filter(id=id).first():
+                        raise ValidationError({"brand_types": _("Brand types should be list of the ids")})
+                    brand_type = BrandType.objects.filter(id=id).first()
+                    brand_types_filter += f"{brand_type.name}|"
+                brand_types_filter = brand_types_filter[:-1] + "}"
+
+            compatibility_filter = ''
+            if compatibility:
+                for key, value in dict(compatibility).items():
+                    compatibility_filter += f'{key.capitalize()}:{value};'
 
             data = [{
                 'q': keywords,
                 'limit': self.per_page_limit,
                 'category_ids': settings.EBAY_SEARCH_CATEGORY,
-                'fieldgroups': 'EXTENDED,MATCHING_ITEMS',
-                'aspect_filter': 'categoryId:6030',
+                'fieldgroups': 'ASPECT_REFINEMENTS,CATEGORY_REFINEMENTS,' +
+                               'CONDITION_REFINEMENTS,BUYING_OPTION_REFINEMENTS,EXTENDED,MATCHING_ITEMS',
+                'aspect_filter': f'categoryId:{settings.EBAY_SEARCH_CATEGORY}, Brand Type: {brand_types_filter}' \
+                    if brand_types_filter else f'categoryId:{settings.EBAY_SEARCH_CATEGORY}',
             }]
+
+            if compatibility_filter:
+                data[0]['compatibility_filter'] = compatibility_filter[:-1]
 
             if sort_order is not None:
                 data[0]['sort'] = sort_order

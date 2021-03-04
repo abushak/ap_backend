@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ebay.models import Credential, Product, ProductImage
+from ebay.models import Credential, Product, ProductImage, BrandType
 
 
 @admin.register(Credential)
@@ -28,3 +28,11 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ('condition',)
     search_fields = ('ebay_id', 'title', 'hash',)
     inlines = (ProductImageAdmin,)
+
+
+@admin.register(BrandType)
+class BrandType(admin.ModelAdmin):
+    """ Brand Type admin
+    """
+    list_display = ('id', 'name', 'active_default')
+

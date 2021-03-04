@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ebay.models import Product, ProductImage
+from ebay.models import Product, ProductImage, BrandType
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -33,9 +33,19 @@ class SearchIdSerializer(serializers.Serializer):
     def create(self, validated_data):
         pass
 
+class CompatibilitySerializer(serializers.Serializer):
+    year = serializers.CharField(required=False)
+    make = serializers.CharField(required=False)
+    model = serializers.CharField(required=False)
+
 
 class SearchQuerySerializer(serializers.Serializer):
     query = serializers.CharField(required=True)
+    brand_types = serializers.ListField(
+        required=False,
+        child=serializers.IntegerField()
+    )
+    compatibility = CompatibilitySerializer()
 
     def update(self, instance, validated_data):
         pass
