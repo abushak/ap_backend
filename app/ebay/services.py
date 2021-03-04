@@ -50,7 +50,7 @@ class EbayService:
         """
         try:
             brand_types_filter = ''
-            if len(brand_types):
+            if brand_types and len(brand_types):
                 brand_types_filter = "{"
                 for id in brand_types:
                     if not isinstance(id, int) and not BrandType.objects.filter(id=id).first():

@@ -45,7 +45,7 @@ class SearchQuerySerializer(serializers.Serializer):
         required=False,
         child=serializers.IntegerField()
     )
-    compatibility = CompatibilitySerializer()
+    compatibility = CompatibilitySerializer(required=False)
 
     def update(self, instance, validated_data):
         pass
