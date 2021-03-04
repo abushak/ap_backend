@@ -89,9 +89,14 @@ class EbayService:
                 browse_api_parameters['zip_code'] = zipcode
 
             api = AutoCorrectBrowseAPI(self.app_id, self.cert_id, **browse_api_parameters)
-            pagination_totals = self.pagination_totals(api, data=data)
+            pagination_totals, dominant_category = self.pagination_totals_and_dominate_category(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
+
+            if dominant_category:
+                data[0]['category_ids'] = str(dominant_category)
+                data[0]['aspect_filter'] = f'categoryId:{ dominant_category }, Brand Type: {brand_types_filter}' \
+                    if brand_types_filter else f'categoryId:{settings.EBAY_SEARCH_CATEGORY}'
 
             call_ebay.apply_async(
                 (self.app_id, self.cert_id, browse_api_parameters, data, self.per_page_limit, owner_id, search_id),
@@ -102,12 +107,16 @@ class EbayService:
         except ConnectionError as error:
             raise EbayServiceError(error)
 
-    def pagination_totals(self, api, data):
+    def pagination_totals_and_dominate_category(self, api, data):
         response = api.execute('search', data)
         max_response_pages = int(response[0].total)
+
+        dominant_category = None
+        if getattr(response[0], 'refinement', None) and getattr(response[0].refinement, 'dominantCategoryId', None):
+            dominant_category = response[0].refinement.dominantCategoryId
         if max_response_pages == 0:
             raise EbayServiceError("No products found using provided query")
-        return max_response_pages
+        return max_response_pages, dominant_category
 
     def get_item(self, item_id):
         """
