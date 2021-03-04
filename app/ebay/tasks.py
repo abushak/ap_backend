@@ -91,10 +91,10 @@ def fetch_product_details(product_id):
         single_item = es.get_item(item_id=product.ebay_id)['Item']
         product.top_rated_seller = True if single_item['Seller']['TopRatedSeller'] == "true" else False
         product.buy_it_now = True if int(single_item['Quantity']) > 0 else False
-        for name_value_dict in single_item["ItemSpecifics"]["NameValueList"]:
-            if name_value_dict["Name"] == "Brand":
-                product.brand_type = name_value_dict["Brand"]
-                break
+        # for name_value_dict in single_item["ItemSpecifics"]["NameValueList"]:
+        #     if name_value_dict["Name"] == "Brand":
+        #         product.brand_type = name_value_dict["Brand"]
+        #         break
         product.save()
         # Uncomment this part for additional product images fetching
         # gallery = single_item['PictureURL']
