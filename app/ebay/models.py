@@ -198,3 +198,25 @@ class ProductImage(CoreModel):
 
     def __str__(self):
         return f"{self.pk}:{self.product.pk}, {self.url}"
+
+
+class BrandType(CoreModel):
+    ''' Brand Type model, includes active default parameter
+    '''
+    name = models.CharField(
+        max_length=255,
+        verbose_name=_("Name"),
+        help_text=_("Name of the Brand Type filter.")
+    )
+
+    active_default = models.BooleanField(default=False)
+
+
+    def __str__(self):
+        return f"Brand Type:{self.pk}:{self.name}"
+
+
+    class Meta:
+        app_label = 'ebay'
+        verbose_name = "Brand Type"
+        verbose_name_plural = "Brand Types"
