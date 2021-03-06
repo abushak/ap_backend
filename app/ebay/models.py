@@ -42,6 +42,19 @@ class Credential(CoreModel):
         help_text=_("Only one credential can be primary at same time.")
     )
 
+    query_count = models.IntegerField(
+        default=0,
+        verbose_name=_("QueryCount"),
+        help_text=_("Count query to the ebay with these credentials per dey")
+    )
+
+    api_limit_mtime = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("ApiLimitMTime"),
+        help_text=_("Time when api limit was expired")
+    )
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Set `is_primary=False` for Credential with `is_primary=True` if instance is set to `is_primary=True`
