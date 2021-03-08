@@ -1,3 +1,4 @@
+import datetime
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -56,8 +57,27 @@ class Credential(CoreModel):
     )
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
         # Set `is_primary=False` for Credential with `is_primary=True` if instance is set to `is_primary=True`
+        super().save(*args, **kwargs)
+
+        if self.query_count > 4950 and self.api_limit_mtime == None:
+            print('it was saved again')
+            self.api_limit_mtime = datetime.datetime.now()
+            self.is_primary = False
+            new_primary = Credential.objects.filter(query_count__lte=4950, api_limit_mtime__isnull=True).first()
+            if new_primary:
+                new_primary.is_primary = True
+                new_primary.save()
+            else:
+                date_from = datetime.datetime.now() - datetime.timedelta(days=1)
+
+                new_primary = Credential.objects.filter(api_limit_mtime__lte=date_from).first()
+                if new_primary:
+                    new_primary.query_count = 0
+                    new_primary.api_limit_mtime = None
+                    new_primary.is_primary = True
+                    new_primary.save()
+
         if self.is_primary is True:
             Credential.objects.exclude(pk=self.pk).update(is_primary=False)
 

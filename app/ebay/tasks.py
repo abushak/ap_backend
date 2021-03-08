@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from ebay.models import Product, ProductImage
+from ebay.models import Product, ProductImage, Credential
 from ebay.utils import generate_hash
 from ebaysdk.finding import Connection as Finding
 from browseapi.containers import ItemSummary
@@ -10,10 +10,12 @@ from .client import AutoCorrectBrowseAPI
 @shared_task
 def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, owner_id, search_id):
     api = AutoCorrectBrowseAPI(app_id, cert_id, **browse_api_parameters)
+    query_counter = 1
     for n in range(per_page_limit):
         data[0]["offset"] = data[0]["limit"] * (n + 1)
         try:
             response = api.execute('search', data)
+            query_counter += 1
         except Exception as err:
             print(err)
             continue
@@ -61,6 +63,9 @@ def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, owne
                 "country": product.itemLocation.country if getattr(product, 'itemLocation', None) \
                     and getattr(product.itemLocation, 'country', None) else None,
             }, ebay_id, images, search_id))
+    active_credential = Credential.objects.get(app_id=app_id)
+    active_credential.query_count = active_credential.query_count + query_counter
+    active_credential.save()
 
 
 @shared_task
