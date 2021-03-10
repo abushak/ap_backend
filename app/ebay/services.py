@@ -1,3 +1,4 @@
+import math
 from ebaysdk.exception import ConnectionError  # pylint: disable=redefined-builtin
 from ebay.models import Credential, BrandType
 from rest_framework.exceptions import ValidationError
@@ -94,13 +95,15 @@ class EbayService:
                 data[0]['category_ids'] = str(dominant_category)
                 data[0]['aspect_filter'] = f'categoryId:{ dominant_category }, Brand Type: {brand_types_filter}' \
                     if brand_types_filter else f'categoryId:{settings.EBAY_SEARCH_CATEGORY}'
-
             pagination_totals = self.pagination_totals(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
-
+                self.pages_limit = 1
+            else:
+                self.pages_limit = math.ceil(pagination_totals / self.per_page_limit)
             call_ebay.apply_async(
-                (self.app_id, self.cert_id, browse_api_parameters, data, self.per_page_limit, owner_id, search_id),
+                (self.app_id, self.cert_id, browse_api_parameters, data,
+                 self.per_page_limit, self.pages_limit, owner_id, search_id),
                 countdown=0.00167
             )
 

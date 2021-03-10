@@ -8,11 +8,11 @@ from .client import AutoCorrectBrowseAPI
 
 
 @shared_task
-def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, owner_id, search_id):
+def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, pages_limit, owner_id, search_id):
     api = AutoCorrectBrowseAPI(app_id, cert_id, **browse_api_parameters)
     query_counter = 2
-    for n in range(per_page_limit):
-        data[0]["offset"] = data[0]["limit"] * (n + 1)
+    for n in range(pages_limit):
+        data[0]["offset"] = data[0]["limit"] * n
         try:
             response = api.execute('search', data)
             query_counter += 1
