@@ -192,6 +192,15 @@ class Product(CoreModel):
         help_text=_("ISO 3166 country code. Max. length 2 characters.")
     )
 
+    seller = models.ForeignKey(
+        'ebay.Seller',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        verbose_name="Seller",
+        help_text=_("Seller of the product")
+    )
+
 
     def __str__(self):
         return f"{self.pk}: {self.ebay_id} - {self.title}"
@@ -231,6 +240,34 @@ class ProductImage(CoreModel):
 
     def __str__(self):
         return f"{self.pk}:{self.product.pk}, {self.url}"
+
+
+class Seller(CoreModel):
+    username = models.CharField(
+        max_length=255,
+        verbose_name=_("Seller"),
+        help_text=_("Username of the product seller")
+    )
+    feedback_percentage = models.DecimalField(
+        null=True,
+        blank=True,
+        max_digits=4,
+        decimal_places=1,
+        verbose_name=_("Feedback Percentage"),
+        help_text=_("Feedback percentage of the product seller")
+    )
+    feedback_score = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Feedback Score"),
+        help_text=_("Feedback score of the product seller")
+    )
+
+
+    class Meta:
+        app_label = 'ebay'
+        verbose_name = "Seller"
+        verbose_name_plural = "Sellers"
 
 
 class BrandType(CoreModel):
