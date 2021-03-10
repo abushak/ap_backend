@@ -95,7 +95,7 @@ class EbayService:
                 data[0]['category_ids'] = str(dominant_category)
                 data[0]['aspect_filter'] = f'categoryId:{ dominant_category }, Brand Type: {brand_types_filter}' \
                     if brand_types_filter else f'categoryId:{settings.EBAY_SEARCH_CATEGORY}'
-            pagination_totals = self.pagination_totals(api, data=data)
+            pagination_totals, conditions = self.pagination_and_condition_totals(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
                 self.pages_limit = 1
@@ -107,7 +107,7 @@ class EbayService:
                 countdown=0.00167
             )
 
-            return True
+            return conditions
         except ConnectionError as error:
             raise EbayServiceError(error)
 
@@ -118,12 +118,18 @@ class EbayService:
             dominant_category = response[0].refinement.dominantCategoryId
         return dominant_category
 
-    def pagination_totals(self, api, data):
+    def pagination_and_condition_totals(self, api, data):
         response = api.execute('search', data)
         max_response_pages = int(response[0].total)
+        conditions = {}
+        if getattr(response[0], 'refinement', None) and getattr(response[0].refinement, 'conditionDistributions', None):
+            for condition in getattr(response[0].refinement, 'conditionDistributions'):
+                conditions.update({
+                    condition.condition: condition.matchCount
+                })
         if max_response_pages == 0:
             raise EbayServiceError("No products found using provided query")
-        return max_response_pages
+        return max_response_pages, conditions
 
     def get_item(self, item_id):
         """

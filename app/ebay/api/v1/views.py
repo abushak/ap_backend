@@ -50,9 +50,13 @@ class EbaySearch(APIView):
         except EbayServiceError as error:
             raise ValidationError({"ebay": error.__str__()})
 
+        data = {
+            "search_id": search.pk
+        }
+
         if request.data.get('query', None):
             try:
-                ebay.search(
+                conditions = ebay.search(
                     keywords=request.data.get('query'),
                     brand_types=request.data.get('brand_types', None),
                     compatibility=request.data.get('compatibility', None),
@@ -62,7 +66,11 @@ class EbaySearch(APIView):
                     search_id=search.pk,
                     zipcode=zipcode
                 )
+                if conditions:
+                    data.update({
+                        'conditions': conditions
+                    })
             except EbayServiceError as error:
                 raise ValidationError({"query": error.__str__()})
 
-        return Response(data={"search_id": search.pk}, status=status.HTTP_201_CREATED)
+        return Response(data=data, status=status.HTTP_201_CREATED)
