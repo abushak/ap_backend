@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from ebay.models import Product, ProductImage, Credential
+from ebay.models import Product, ProductImage, Credential, Seller
 from ebay.utils import generate_hash
 from ebaysdk.finding import Connection as Finding
 from browseapi.containers import ItemSummary
@@ -43,6 +43,14 @@ def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, page
             if getattr(product, 'additionalImages', None):
                 images = [image.imageUrl for image in product.additionalImages]
 
+            seller = None
+            if getattr(product, 'seller') and product.seller.username:
+                seller = Seller.objects.update_or_create(username=product.seller.username, defaults={**{
+                    'feedback_percentage': product.seller.feedbackPercentage,
+                    'feedback_score': product.seller.feedbackScore
+                }})
+
+
             create_product.apply_async((
             {
                 "ebay_id": ebay_id,
@@ -62,18 +70,25 @@ def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, page
                 # "buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
                 "country": product.itemLocation.country if getattr(product, 'itemLocation', None) \
                     and getattr(product.itemLocation, 'country', None) else None,
-            }, ebay_id, images, search_id))
+            }, ebay_id, images, search_id, seller[0].id if seller else None))
     active_credential = Credential.objects.get(app_id=app_id)
     active_credential.query_count = active_credential.query_count + query_counter
     active_credential.save()
 
 
 @shared_task
-def create_product(p_map, ebay_id, images, search_id) -> str:
+def create_product(p_map, ebay_id, images, search_id, seller_id) -> str:
+    if seller_id:
+        p_map["seller"] = Seller.objects.get(id=seller_id)
     hash = generate_hash(str(p_map))
     p_map["search_id"] = search_id
     # TODO: Move product hash checking before single item fetching to avoid unnecessary requests
-    product, created = Product.objects.update_or_create(ebay_id=ebay_id, hash=hash, defaults={**p_map})
+
+    product, created = Product.objects.update_or_create(
+        ebay_id=ebay_id,
+        hash=hash,
+        defaults={**p_map}
+    )
     # Currently disable product details fetching to respect eBay calls limit (3000 requests per 5 seconds).
     #fetch_product_details.apply_async((product.pk,))
     if images:

@@ -270,6 +270,10 @@ class Seller(CoreModel):
         verbose_name_plural = "Sellers"
 
 
+    def __str__(self):
+        return self.username
+
+
 class BrandType(CoreModel):
     ''' Brand Type model, includes active default parameter
     '''
