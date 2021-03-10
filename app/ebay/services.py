@@ -95,6 +95,9 @@ class EbayService:
                 data[0]['category_ids'] = str(dominant_category)
                 data[0]['aspect_filter'] = f'categoryId:{ dominant_category }, Brand Type: {brand_types_filter}' \
                     if brand_types_filter else f'categoryId:{settings.EBAY_SEARCH_CATEGORY}'
+
+            data[0]["filter"] = "maxDeliveryCost:0"
+
             pagination_totals, conditions = self.pagination_and_condition_totals(api, data=data)
             if pagination_totals < self.per_page_limit:
                 self.per_page_limit = pagination_totals
