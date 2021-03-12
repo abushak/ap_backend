@@ -11,6 +11,21 @@ from ebay.services import EbayService, EbayServiceError
 from django.utils.translation import gettext_lazy as _
 
 
+class EbayProductDetailsView(APIView):
+    """ Make request to the eBay and get detail information about the product
+    """
+    @swagger_auto_schema()
+    def get(self, request, id, *args, **kwargs):
+        try:
+            ebay = EbayService(auto_save=True)
+        except EbayServiceError as error:
+            raise ValidationError({"ebay": error.__str__()})
+
+        item_details = ebay.get_item(id)
+
+        return Response(data=item_details, status=status.HTTP_201_CREATED)
+
+
 class EbaySearch(APIView):
 
     """
