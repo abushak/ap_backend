@@ -145,7 +145,7 @@ class EbayService:
             api = Shopping(appid=self.app_id, config_file=None)
             response = api.execute('GetSingleItem', {
                 'ItemID': item_id,
-                'IncludeSelector': 'Details,ItemSpecifics'
+                'IncludeSelector': 'Details,ItemSpecifics,Description'
             })
             if response.reply.Ack in ['Failure', 'PartialFailure']:
                 raise EbayServiceError(response.dict()['errorMessage']['error']['message'])
