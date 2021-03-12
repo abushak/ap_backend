@@ -70,6 +70,7 @@ services:
       - HASURA_GRAPHQL_ENABLE_CONSOLE=true
       - HASURA_GRAPHQL_DEV_MODE=true
       - HASURA_GRAPHQL_ADMIN_SECRET=password
+      - HASURA_GRAPHQL_UNAUTHORIZED_ROLE=anonymous
 volumes:
   db-data:
   redis-data:
