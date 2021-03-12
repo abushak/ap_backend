@@ -73,5 +73,7 @@ apps_urlpatterns = [
 urlpatterns = api_v1_urlpatterns \
               + jwt_urlpatterns \
               + static_media_urlpatterns \
-              + apps_urlpatterns \
-              + drf_yasg_urlpatterns
+              + apps_urlpatterns
+
+if settings.DEBUG:
+    urlpatterns += drf_yasg_urlpatterns
