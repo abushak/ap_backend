@@ -39,7 +39,7 @@ class EbayService:
         except (KeyError, Credential.DoesNotExist):
             raise EbayServiceError(_("At least one primary Credential required"))
 
-    def search(self, keywords, brand_types, compatibility, search_id,
+    def search(self, keywords, brand_types, compatibility, max_delivery_cost, search_id,
                owner_id=None, item_filter=None, sort_order=None, zipcode=None):
         """
         :param keywords:
@@ -96,7 +96,8 @@ class EbayService:
                 data[0]['aspect_filter'] = f'categoryId:{ dominant_category }, Brand Type: {brand_types_filter}' \
                     if brand_types_filter else f'categoryId:{settings.EBAY_SEARCH_CATEGORY}'
 
-            data[0]["filter"] = "maxDeliveryCost:0"
+            if not max_delivery_cost:
+                data[0]["filter"] = "maxDeliveryCost:0"
 
             pagination_totals, conditions = self.pagination_and_condition_totals(api, data=data)
             if pagination_totals < self.per_page_limit:

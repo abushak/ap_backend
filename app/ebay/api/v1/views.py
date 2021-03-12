@@ -75,6 +75,7 @@ class EbaySearch(APIView):
                     keywords=request.data.get('query'),
                     brand_types=request.data.get('brand_types', None),
                     compatibility=request.data.get('compatibility', None),
+                    max_delivery_cost=request.data.get('maxDeliveryCost', False),
                     item_filter=item_filter,
                     sort_order=request.data.get('sort_order', None),
                     owner_id=owner_id,

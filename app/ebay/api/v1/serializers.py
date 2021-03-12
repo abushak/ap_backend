@@ -46,6 +46,7 @@ class SearchQuerySerializer(serializers.Serializer):
         child=serializers.IntegerField()
     )
     compatibility = CompatibilitySerializer(required=False)
+    maxDeliveryCost = serializers.BooleanField(required=False)
 
     def update(self, instance, validated_data):
         pass
