@@ -112,6 +112,33 @@ class Search(CoreModel):
         verbose_name=_("Session UUID"),
         help_text=_("Used to determine search query session.")
     )
+    brand_types = models.CharField(
+        null=True,
+        blank=True,
+        max_length=1000,
+        verbose_name=_("Brand Types"),
+        help_text=_("Max. length 1000 characters")
+    )
+    compatibility = models.CharField(
+        null=True,
+        blank=True,
+        max_length=1000,
+        verbose_name=_("Compatibility"),
+        help_text=_("Max. length 1000 characters")
+    )
+    max_delivery_cost = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name=_("Max Delivery Cost"),
+        help_text=_("False if free shipping")
+    )
+    conditions = models.CharField(
+        null=True,
+        blank=True,
+        max_length=1000,
+        verbose_name=_("Conditions"),
+        help_text=_("Max. length 1000 characters")
+    )
 
     def __str__(self):
         return f"{self.keyword}: {self.hash}"

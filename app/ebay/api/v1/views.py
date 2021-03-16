@@ -1,3 +1,6 @@
+import json
+import datetime
+import ast
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -59,7 +62,25 @@ class EbaySearch(APIView):
             }
 
         owner_id = None if request.user.is_anonymous else request.user.pk
-        search = Search.objects.create(keyword=request.data.get('query'), owner_id=owner_id)
+
+        date_from = datetime.datetime.now() - datetime.timedelta(days=1)
+        search = Search.objects.filter(
+            keyword=request.data.get('query'),
+            brand_types=request.data.get('brand_types', None),
+            compatibility=request.data.get('compatibility', None),
+            max_delivery_cost=request.data.get('maxDeliveryCost', False),
+            created_at__gte=date_from
+        ).first()
+        call_ebay = False
+        if not search:
+            call_ebay = True
+            search = Search.objects.create(
+                keyword=request.data.get('query'),
+                owner_id=owner_id,
+                brand_types=request.data.get('brand_types', None),
+                compatibility=request.data.get('compatibility', None),
+                max_delivery_cost=request.data.get('maxDeliveryCost', False),
+            )
         try:
             ebay = EbayService(auto_save=True)
         except EbayServiceError as error:
@@ -69,7 +90,12 @@ class EbaySearch(APIView):
             "search_id": search.pk
         }
 
-        if request.data.get('query', None):
+        if search.conditions:
+            data.update({
+                'conditions': ast.literal_eval(search.conditions)
+            })
+
+        if request.data.get('query', None) and call_ebay:
             try:
                 conditions = ebay.search(
                     keywords=request.data.get('query'),
@@ -86,6 +112,8 @@ class EbaySearch(APIView):
                     data.update({
                         'conditions': conditions
                     })
+                    search.conditions = str(conditions)
+                    search.save()
             except EbayServiceError as error:
                 raise ValidationError({"query": error.__str__()})
 
