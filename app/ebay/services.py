@@ -54,7 +54,7 @@ class EbayService:
             if brand_types and len(brand_types):
                 brand_types_filter = "{"
                 for id in brand_types:
-                    if not isinstance(id, int) and not BrandType.objects.filter(id=id).first():
+                    if not isinstance(id, int) or not BrandType.objects.filter(id=id).first():
                         raise ValidationError({"brand_types": _("Brand types should be list of the ids")})
                     brand_type = BrandType.objects.filter(id=id).first()
                     brand_types_filter += f"{brand_type.name}|"

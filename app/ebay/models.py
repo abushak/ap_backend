@@ -197,12 +197,6 @@ class Product(CoreModel):
         verbose_name=_("Hash"),
         help_text=_("Hash that allows to check if product was changed from last update.")
     )
-    search = models.ForeignKey(
-        Search,
-        on_delete=models.CASCADE,
-        verbose_name=_("Search request"),
-        help_text=_("Search request keyword"),
-    )
     top_rated_seller = models.BooleanField(
         default=False,
         verbose_name=_("Is top rated seller"),
@@ -231,6 +225,29 @@ class Product(CoreModel):
 
     def __str__(self):
         return f"{self.pk}: {self.ebay_id} - {self.title}"
+
+
+class SearchProduct(CoreModel):
+    search = models.ForeignKey(
+        Search,
+        related_name="search_product",
+        on_delete=models.CASCADE,
+        verbose_name=_("Search"),
+        help_text="Many to one relations with Search table"
+    )
+    product = models.ForeignKey(
+        Product,
+        related_name="search_product",
+        on_delete=models.CASCADE,
+        verbose_name=_("Product"),
+        help_text="Many to one relations with Product table"
+    )
+
+
+    class Meta:
+        app_label = "ebay"
+        verbose_name = "Search Product"
+        verbose_name_plural = "Search Product"
 
 
 def product_image_upload_path(instance, filename):

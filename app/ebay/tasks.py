@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from ebay.models import Product, ProductImage, Credential, Seller
+from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct, Search
 from ebay.utils import generate_hash
 from ebaysdk.finding import Connection as Finding
 from browseapi.containers import ItemSummary
@@ -81,14 +81,19 @@ def create_product(p_map, ebay_id, images, search_id, seller_id) -> str:
     if seller_id:
         p_map["seller"] = Seller.objects.get(id=seller_id)
     hash = generate_hash(str(p_map))
-    p_map["search_id"] = search_id
-    # TODO: Move product hash checking before single item fetching to avoid unnecessary requests
 
+    # TODO: Move product hash checking before single item fetching to avoid unnecessary requests
     product, created = Product.objects.update_or_create(
         ebay_id=ebay_id,
         hash=hash,
         defaults={**p_map}
     )
+
+    if product and search_id and Search.objects.filter(id=search_id).first():
+        search_product = SearchProduct.objects.create(
+            product=product, search=Search.objects.filter(id=search_id).first()
+        )
+
     # Currently disable product details fetching to respect eBay calls limit (3000 requests per 5 seconds).
     #fetch_product_details.apply_async((product.pk,))
     if images:
