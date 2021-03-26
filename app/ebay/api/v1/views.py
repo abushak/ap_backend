@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ebay.api.v1.serializers import SearchIdSerializer, SearchQuerySerializer, QueryValidationErrorSerializer
-from ebay.models import Search
+from ebay.models import Search, SearchProduct
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from ebay.services import EbayService, EbayServiceError
@@ -72,7 +72,7 @@ class EbaySearch(APIView):
             created_at__gte=date_from
         ).first()
         call_ebay = False
-        if not search:
+        if not search or not SearchProduct.objects.filter(search=search).all():
             call_ebay = True
             search = Search.objects.create(
                 keyword=request.data.get('query'),
@@ -94,7 +94,6 @@ class EbaySearch(APIView):
             data.update({
                 'conditions': ast.literal_eval(search.conditions)
             })
-
         if request.data.get('query', None) and call_ebay:
             try:
                 conditions = ebay.search(
@@ -116,5 +115,4 @@ class EbaySearch(APIView):
                     search.save()
             except EbayServiceError as error:
                 raise ValidationError({"query": error.__str__()})
-
         return Response(data=data, status=status.HTTP_201_CREATED)
