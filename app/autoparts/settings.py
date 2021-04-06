@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'ebay',
-    'browseapi'
+    'browseapi',
+    'datasn'
 ]
 
 MIDDLEWARE = [
