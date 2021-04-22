@@ -49,6 +49,11 @@ services:
       - POSTGRES_USER=autoparts
       - POSTGRES_PASSWORD=autoparts
       - POSTGRES_DB=autoparts
+  mysql_db:
+    image: "mcr.microsoft.com/mssql/server"
+    environment:
+      SA_PASSWORD: "Autoparts31415"
+      ACCEPT_EULA: "Y"
   pgadmin:
     image: dpage/pgadmin4
     ports:
@@ -58,7 +63,7 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=autoparts
       - PGADMIN_LISTEN_PORT=5050
   hge:
-    image: hasura/graphql-engine:v1.3.3
+    image: hasura/graphql-engine:v2.0.0-alpha.2
     ports:
       - "6015:8080"
     depends_on:
