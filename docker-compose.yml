@@ -49,6 +49,17 @@ services:
       - POSTGRES_USER=autoparts
       - POSTGRES_PASSWORD=autoparts
       - POSTGRES_DB=autoparts
+  db_datasn:
+    image: postgres:12
+    ports:
+      - "6016:5432"
+    volumes:
+      - db-datasn:/var/lib/postgresql/datasn
+    restart: always
+    environment:
+      - POSTGRES_USER=autoparts
+      - POSTGRES_PASSWORD=autoparts
+      - POSTGRES_DB=autoparts_datasn
   mysql_db:
     image: "mcr.microsoft.com/mssql/server"
     environment:
@@ -79,3 +90,4 @@ services:
 volumes:
   db-data:
   redis-data:
+  db-datasn:
