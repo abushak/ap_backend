@@ -60,11 +60,6 @@ services:
       - POSTGRES_USER=autoparts
       - POSTGRES_PASSWORD=autoparts
       - POSTGRES_DB=autoparts_datasn
-  mysql_db:
-    image: "mcr.microsoft.com/mssql/server"
-    environment:
-      SA_PASSWORD: "Autoparts31415"
-      ACCEPT_EULA: "Y"
   pgadmin:
     image: dpage/pgadmin4
     ports:
