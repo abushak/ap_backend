@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from ebay.models import Credential, Product, ProductImage, BrandType
+from ebay.models import Credential, Product, ProductImage, BrandType, SearchIndex
 
 
 @admin.register(Credential)
@@ -35,4 +35,12 @@ class BrandType(admin.ModelAdmin):
     """ Brand Type admin
     """
     list_display = ('id', 'name', 'active_default')
+
+
+@admin.register(SearchIndex)
+class SearchIndexAdmin(admin.ModelAdmin):
+    """
+    Search index admin
+    """
+    pass
 

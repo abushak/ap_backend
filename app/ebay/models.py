@@ -1,8 +1,9 @@
 import datetime
+
+from common.models import CoreModel
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import get_user_model
-from common.models import CoreModel
 
 User = get_user_model()
 
@@ -144,12 +145,58 @@ class Search(CoreModel):
         return f"{self.keyword}: {self.hash}"
 
 
+class SearchIndex(CoreModel):
+    """
+        Search index model
+    """
+    search = models.ForeignKey(
+        'ebay.Search',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        help_text=_("Search id")
+    )
+    keyword = models.CharField(
+        max_length=255,
+        verbose_name=_("Search index keyword"),
+        help_text=_("Max. length 255 characters."),
+    )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Description"),
+        help_text=_("May contain HTML tags.")
+    )
+    image = models.URLField(
+        null=True,
+        verbose_name=_("Image url"),
+        help_text=_("Image URL")
+    )
+
+    class Meta:
+        app_label = 'ebay'
+        verbose_name = "Search index"
+        verbose_name_plural = "Search indexes"
+
+    def __str__(self):
+        return self.keyword
+
+
 class Product(CoreModel):
     """
     Product model
     """
-
+    vendor = models.ForeignKey(
+        'ebay.Vendor',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        verbose_name="Vendor",
+        help_text=_("Product vendor")
+    )
     ebay_id = models.BigIntegerField(
+        null=True,
+        blank=True,
         verbose_name=_("eBay Item ID"),
         help_text=_("eBay Item ID from API")
     )
@@ -225,6 +272,30 @@ class Product(CoreModel):
 
     def __str__(self):
         return f"{self.pk}: {self.ebay_id} - {self.title}"
+
+
+class Vendor(CoreModel):
+    """
+    Vendor model
+    """
+    name = models.CharField(
+        max_length=255,
+        verbose_name=_("Vendor"),
+        help_text=_("Name of the product vendor")
+    )
+    url = models.URLField(
+        null=True,
+        verbose_name=_("Link"),
+        help_text=_("Product Vendor Link")
+    )
+
+    class Meta:
+        app_label = 'ebay'
+        verbose_name = "Vendor"
+        verbose_name_plural = "Vendors"
+
+    def __str__(self):
+        return self.name
 
 
 class SearchProduct(CoreModel):
