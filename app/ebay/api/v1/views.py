@@ -1,17 +1,18 @@
-import json
-import datetime
 import ast
+import datetime
+
+from django.utils.translation import gettext_lazy as _
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from ebay.api.v1.serializers import SearchIdSerializer, SearchQuerySerializer, QueryValidationErrorSerializer
+from ebay.models import Search, SearchProduct
+from ebay.services import EbayService, EbayServiceError
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from ebay.api.v1.serializers import SearchIdSerializer, SearchQuerySerializer, QueryValidationErrorSerializer
-from ebay.models import Search, SearchProduct
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
-from ebay.services import EbayService, EbayServiceError
-from django.utils.translation import gettext_lazy as _
+from ebay.tasks import parse_partsgeek
 
 
 class EbayProductDetailsView(APIView):
@@ -85,7 +86,10 @@ class EbaySearch(APIView):
             ebay = EbayService(auto_save=True)
         except EbayServiceError as error:
             raise ValidationError({"ebay": error.__str__()})
-
+        # try:
+        #     partsgeek = PartsGeek()
+        # except:
+        #     raise ValidationError({"partsgeek": "Something went wrong during initialization PartsGeek"})
         data = {
             "search_id": search.pk
         }
@@ -115,4 +119,8 @@ class EbaySearch(APIView):
                     search.save()
             except EbayServiceError as error:
                 raise ValidationError({"query": error.__str__()})
+            try:
+                parse_partsgeek.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
+            except:
+                raise ValidationError({"partsgeek": "Something went wrong during parsing PartsGeek"})
         return Response(data=data, status=status.HTTP_201_CREATED)

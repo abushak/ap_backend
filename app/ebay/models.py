@@ -200,8 +200,20 @@ class Product(CoreModel):
         verbose_name=_("eBay Item ID"),
         help_text=_("eBay Item ID from API")
     )
-    title = models.CharField(
+    brand = models.CharField(
+        null=True,
         max_length=80,
+        verbose_name=_("Brand"),
+        help_text=_("Max. length 80 characters.")
+    )
+    part_number = models.CharField(
+        null=True,
+        max_length=80,
+        verbose_name=_("Part number"),
+        help_text=_("Max. length 80 characters.")
+    )
+    title = models.CharField(
+        max_length=255,
         verbose_name=_("Title"),
         help_text=_("Max. length 80 characters.")
     )
@@ -217,6 +229,7 @@ class Product(CoreModel):
         help_text=_("Max. length 45 characters.")
     )
     condition = models.CharField(
+        null=True,
         max_length=32,
         verbose_name=_("Condition"),
         help_text=_("Max. length 32 characters.")
