@@ -1,10 +1,41 @@
 from celery import shared_task
-
-from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct, Search
+from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct, Search, Vendor
 from ebay.utils import generate_hash
-from ebaysdk.finding import Connection as Finding
-from browseapi.containers import ItemSummary
+
 from .client import AutoCorrectBrowseAPI
+from .parsers.partsgeek_parser import PartsGeek
+
+
+def get_vendor(name):
+    vendor, created = Vendor.objects.update_or_create(
+        name=name,
+    )
+    return vendor.pk
+
+
+@shared_task
+def parse_partsgeek(keywords, search_id):
+    url = 'https://www.partsgeek.com/ss/?i=1&ssq='
+    partsgeek = PartsGeek()
+    items = partsgeek.find_goods(url, keywords)
+    images = None
+    ebay_id = None
+    for product in items:
+        create_product.apply_async((
+            {
+                "ebay_id": None,
+                "title": product.get('title', None),
+                "location": "",
+                "description": getattr(product, 'shortDescription', None),
+                "condition": getattr(product, 'condition', None),
+                "price": product.get('price', None),
+                "url": product.get('url', None),
+                "thumbnail_url": product.get('thumbnail_url', None),
+                "country": getattr(product, 'itemLocation', None),
+                "brand": product.get('brand', None),
+                "part_number": product.get('part_number', None),
+                "vendor_id": get_vendor("partsgeek.com")
+            }, ebay_id, images, search_id, None))
 
 
 @shared_task
@@ -50,27 +81,27 @@ def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, page
                     'feedback_score': product.seller.feedbackScore
                 }})
 
-
             create_product.apply_async((
-            {
-                "ebay_id": ebay_id,
-                "title": getattr(product, 'title', None),
-                "location": location,
-                "description": getattr(product, 'shortDescription', None),
-                "condition": getattr(product, 'condition', None),
-                "price": product.price.value if getattr(product, 'price', None) else None,
-                "url": product.itemAffiliateWebUrl \
-                    if getattr(product, 'itemAffiliateWebUrl', None) else product.itemWebUrl,
-                "thumbnail_url": product.thumbnailImages[0].imageUrl \
-                    if getattr(product, 'thumbnailImages', None) else None,
-                # TODO: drop it if will not necessary
-                # ebay returns string representation so we need to convert to bool
-                # "top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
-                # ebay returns string representation so we need to convert to bool
-                # "buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
-                "country": product.itemLocation.country if getattr(product, 'itemLocation', None) \
-                    and getattr(product.itemLocation, 'country', None) else None,
-            }, ebay_id, images, search_id, seller[0].id if seller else None))
+                {
+                    "ebay_id": ebay_id,
+                    "title": getattr(product, 'title', None),
+                    "location": location,
+                    "description": getattr(product, 'shortDescription', None),
+                    "condition": getattr(product, 'condition', None),
+                    "price": product.price.value if getattr(product, 'price', None) else None,
+                    "url": product.itemAffiliateWebUrl \
+                        if getattr(product, 'itemAffiliateWebUrl', None) else product.itemWebUrl,
+                    "thumbnail_url": product.thumbnailImages[0].imageUrl \
+                        if getattr(product, 'thumbnailImages', None) else None,
+                    # TODO: drop it if will not necessary
+                    # ebay returns string representation so we need to convert to bool
+                    # "top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
+                    # ebay returns string representation so we need to convert to bool
+                    # "buy_it_now": True if product['listingInfo']['buyItNowAvailable'] == "true" else False,
+                    "country": product.itemLocation.country if getattr(product, 'itemLocation', None) \
+                                                               and getattr(product.itemLocation, 'country',
+                                                                           None) else None,
+                }, ebay_id, images, search_id, seller[0].id if seller else None))
     active_credential = Credential.objects.get(app_id=app_id)
     active_credential.query_count = active_credential.query_count + query_counter
     active_credential.save()
@@ -95,7 +126,7 @@ def create_product(p_map, ebay_id, images, search_id, seller_id) -> str:
         )
 
     # Currently disable product details fetching to respect eBay calls limit (3000 requests per 5 seconds).
-    #fetch_product_details.apply_async((product.pk,))
+    # fetch_product_details.apply_async((product.pk,))
     if images:
         # check images which already were saved
         product_images = [image.url for image in ProductImage.objects.filter(product=product).all()]
