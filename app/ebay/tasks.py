@@ -3,6 +3,7 @@ from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct
 from ebay.utils import generate_hash
 
 from .client import AutoCorrectBrowseAPI
+from .parsers.carid_parser import CarId
 from .parsers.partsgeek_parser import PartsGeek
 
 
@@ -35,6 +36,31 @@ def parse_partsgeek(keywords, search_id):
                 "brand": product.get('brand', None),
                 "part_number": product.get('part_number', None),
                 "vendor_id": get_vendor("partsgeek.com")
+            }, ebay_id, images, search_id, None))
+
+
+@shared_task
+def parse_carid(keywords, search_id):
+    url = 'https://www.carid.com/'
+    carid = CarId()
+    items = carid.find_goods(url, keywords)
+    images = None
+    ebay_id = None
+    for product in items:
+        create_product.apply_async((
+            {
+                "ebay_id": None,
+                "title": product.get('title', None),
+                "location": "",
+                "description": getattr(product, 'shortDescription', None),
+                "condition": getattr(product, 'condition', None),
+                "price": product.get('price', None),
+                "url": product.get('url', None),
+                "thumbnail_url": product.get('thumbnail_url', None),
+                "country": getattr(product, 'itemLocation', None),
+                "brand": product.get('brand', None),
+                "part_number": product.get('part_number', None),
+                "vendor_id": get_vendor("carid.com")
             }, ebay_id, images, search_id, None))
 
 
