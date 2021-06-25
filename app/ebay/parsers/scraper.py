@@ -1,3 +1,4 @@
+import re
 from random import choice
 
 import requests
@@ -15,25 +16,7 @@ def get_proxies_from_url(url):
     return [x for x in proxies if x.strip()]
 
 
-# PROXIES = get_proxies_from_url(PROXY)
-
-PROXIES = [
-    {'proxy': 'parts:parts0109@192.3.147.50:12345', "is_used": False},
-    # {'proxy': 'parts:parts0109@107.174.149.221:12345', "is_used": False},
-    {'proxy': 'parts:parts0109@104.206.203.130:12345', "is_used": False},
-    # {'proxy': 'parts:parts0109@196.196.112.214:12345', "is_used": False},
-    {'proxy': 'parts:parts0109@107.175.58.17:12345', "is_used": False},
-    {'proxy': 'parts:parts0109@192.3.147.52:12345', "is_used": False},
-    {'proxy': 'parts:parts0109@107.175.58.24:12345', "is_used": False},
-    {'proxy': 'parts:parts0109@192.3.147.55:12345', "is_used": False},
-]
-
-
-def set_proxy_status(proxy, status):
-    for x in PROXIES:
-        if proxy.get('proxy') == x.get('proxy'):
-            x['is_used'] = status
-            break
+PROXIES = get_proxies_from_url(PROXY)
 
 
 class Scraper:
@@ -67,19 +50,23 @@ class Scraper:
         proxies, proxy = Scraper.get_random_proxy() if PROXIES else {}
         ua = UserAgent()
         userAgent = ua.random
-        # chromedriver = r'/root/ygo_scripts/ygo-scraper/chromedriver/chromedriver'
+        pattern1 = r'Firefox\/?(.*)'
+        pattern2 = r'Chrome\/?(.*)'
+        pattern3 = r'Safari\/?(.*)'
+        userAgent = re.sub(pattern1, 'Firefox/87.0', userAgent)
+        userAgent = re.sub(pattern2, 'Chrome/91.0.4472.106', userAgent)
+        userAgent = re.sub(pattern3, 'Safari/605.1.15', userAgent)
+
+        # chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
         chrome_options = webdriver.ChromeOptions()
         chrome_options.headless = True
         chrome_options.add_argument('--headless')
         chrome_options.add_argument(f'user-agent={userAgent}')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        # chrome_options.binary_location = '/usr/bin/google-chrome'
         options = {
             'proxy': proxies
         }
-        print('------------------------------')
-        print(proxies)
         # chrome = webdriver.Chrome(options=chrome_options, executable_path=chromedriver, seleniumwire_options=options)
         chrome = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options, seleniumwire_options=options)
         chrome.set_window_size(1440, 900)
@@ -99,21 +86,8 @@ class Scraper:
 
     @staticmethod
     def get_random_proxy():
-        # 'parts:parts0109@192.3.147.50:12345'
-        # 'parts:parts0109@107.174.149.221:12345',
-        # 'parts:parts0109@104.206.203.130:12345',  # dont work
-        # # 'parts:parts0109@172.245.195.154:12345',#dont work
-        # 'parts:parts0109@196.196.112.214:12345',
-        # # 'parts:parts0109@104.206.203.10:12345',#dont work
-        # 'parts:parts0109@107.175.58.17:12345',
-        # 'parts:parts0109@192.3.147.52:12345',
-        # 'parts:parts0109@107.175.58.24:12345',
-        # 'parts:parts0109@192.3.147.55:12345']
         proxy = choice(PROXIES)
-        while proxy.get('is_used'):
-            proxy = choice(PROXIES)
-        set_proxy_status(proxy, True)
         return {
-                   'http': 'http://' + proxy.get('proxy'),
-                   'https': 'http://' + proxy.get('proxy')
+                   'http': 'http://' + proxy,
+                   'https': 'http://' + proxy
                }, proxy
