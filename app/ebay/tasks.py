@@ -3,6 +3,7 @@ from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct
 from ebay.utils import generate_hash
 
 from .client import AutoCorrectBrowseAPI
+from .parsers.car_parts_parser import CarParts
 from .parsers.carid_parser import CarId
 from .parsers.partsgeek_parser import PartsGeek
 
@@ -12,6 +13,36 @@ def get_vendor(name):
         name=name,
     )
     return vendor.pk
+
+
+@shared_task
+def parse_car_parts(keywords, search_id):
+    url = 'https://www.carparts.com/'
+    car_parts = CarParts()
+    items = car_parts.find_goods(url, keywords.strip())
+    images = None
+    ebay_id = None
+    for product in items:
+        try:
+            int(product.get('price', None))
+            price = product.get('price', None)
+        except ValueError:
+            price = 0
+        create_product.apply_async((
+            {
+                "ebay_id": None,
+                "title": product.get('title', None),
+                "location": "",
+                "description": getattr(product, 'shortDescription', None),
+                "condition": getattr(product, 'condition', None),
+                "price": price,
+                "url": product.get('url', None),
+                "thumbnail_url": product.get('thumbnail_url', None),
+                "country": getattr(product, 'itemLocation', None),
+                "brand": product.get('brand', None),
+                "part_number": product.get('part_number', None),
+                "vendor_id": get_vendor("carparts.com")
+            }, ebay_id, images, search_id, None))
 
 
 @shared_task
