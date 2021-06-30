@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from app.ebay.parsers.scraper import Scraper, set_proxy_status
+from app.ebay.parsers.scraper import Scraper
 
 
 def get_data(li):
@@ -83,8 +83,8 @@ class CarId(Scraper):
                     (By.XPATH, "/html/body/div[9]/div[2]/div/div[1]/div[1]/div/form/div[3]/div/div/div[3]/div/ul"))
             )
             all_li = ul.find_elements_by_tag_name("li")
-            items = [get_data(li) for li in all_li]
-            result = [self.get_part_number(item, driver) for item in items]
+            result = [get_data(li) for li in all_li]
+            # result = [self.get_part_number(item, driver) for item in items]
         else:
             result = []
             show_more_products_btn.click()
@@ -114,8 +114,7 @@ class CarId(Scraper):
                     'price': li.find_element_by_css_selector("span.lst_prc").text.replace('$', ''),
                 }
                 result.append(res)
-            set_proxy_status(proxy, False)
-            result = [self.get_part_number(item, driver) for item in result]
+            # result = [self.get_part_number(item, driver) for item in result]
         driver.quit()
 
         return result
