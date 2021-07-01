@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from app.ebay.parsers.scraper import Scraper
+from ebay.parsers.scraper import Scraper
 
 
 def get_data(item, content):
@@ -30,6 +30,7 @@ class CarParts(Scraper):
             pattern = r'\d{1}[\,\.]{1}\d{1}l?'
             # Remove the volume of the motor if it is specified in the search query
             mod_keyword = re.sub(pattern, '', keywords)
+            mod_keyword = re.sub(' +', ' ', mod_keyword)
         else:
             mod_keyword = keywords
         driver, proxy = CarParts.make_selenium_request(self, url + urllib.parse.quote_plus(mod_keyword))
