@@ -86,100 +86,28 @@ class Credential(CoreModel):
         return f"{self.pk}: {self.app_id}"
 
 
-class Search(CoreModel):
-    owner = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name=_("Owner"),
-        help_text=_("Search request initiator"),
-    )
-    keyword = models.CharField(
-        max_length=255,
-        verbose_name=_("Search keyword"),
-        help_text=_("Max. length 255 characters."),
-    )
-    # hash field is being used to check if items have been updated from last fetching
-    hash = models.CharField(
-        max_length=32,
-        editable=False,
-        verbose_name=_("Hash"),
-        help_text=_("Hash that allows to check if search results were changed from last update.")
-    )
-    session = models.UUIDField(
-        default=None,
-        null=True,
-        editable=False,
-        verbose_name=_("Session UUID"),
-        help_text=_("Used to determine search query session.")
-    )
-    brand_types = models.CharField(
-        null=True,
-        blank=True,
-        max_length=1000,
-        verbose_name=_("Brand Types"),
-        help_text=_("Max. length 1000 characters")
-    )
-    compatibility = models.CharField(
-        null=True,
-        blank=True,
-        max_length=1000,
-        verbose_name=_("Compatibility"),
-        help_text=_("Max. length 1000 characters")
-    )
-    max_delivery_cost = models.BooleanField(
-        null=True,
-        blank=True,
-        verbose_name=_("Max Delivery Cost"),
-        help_text=_("False if free shipping")
-    )
-    conditions = models.CharField(
-        null=True,
-        blank=True,
-        max_length=1000,
-        verbose_name=_("Conditions"),
-        help_text=_("Max. length 1000 characters")
-    )
-
-    def __str__(self):
-        return f"{self.keyword}: {self.hash}"
-
-
-class SearchIndex(CoreModel):
+class Vendor(CoreModel):
     """
-        Search index model
+    Vendor model
     """
-    search = models.ForeignKey(
-        'ebay.Search',
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        help_text=_("Search id")
-    )
-    keyword = models.CharField(
+    name = models.CharField(
         max_length=255,
-        verbose_name=_("Search index keyword"),
-        help_text=_("Max. length 255 characters."),
+        verbose_name=_("Vendor"),
+        help_text=_("Name of the product vendor")
     )
-    description = models.TextField(
+    url = models.URLField(
         null=True,
-        blank=True,
-        verbose_name=_("Description"),
-        help_text=_("May contain HTML tags.")
-    )
-    image = models.URLField(
-        null=True,
-        verbose_name=_("Image url"),
-        help_text=_("Image URL")
+        verbose_name=_("Link"),
+        help_text=_("Product Vendor Link")
     )
 
     class Meta:
         app_label = 'ebay'
-        verbose_name = "Search index"
-        verbose_name_plural = "Search indexes"
+        verbose_name = "Vendor"
+        verbose_name_plural = "Vendors"
 
     def __str__(self):
-        return self.keyword
+        return self.name
 
 
 class Product(CoreModel):
@@ -282,33 +210,107 @@ class Product(CoreModel):
         help_text=_("Seller of the product")
     )
 
-
     def __str__(self):
         return f"{self.pk}: {self.ebay_id} - {self.title}"
 
 
-class Vendor(CoreModel):
-    """
-    Vendor model
-    """
-    name = models.CharField(
-        max_length=255,
-        verbose_name=_("Vendor"),
-        help_text=_("Name of the product vendor")
-    )
-    url = models.URLField(
+class Search(CoreModel):
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
         null=True,
-        verbose_name=_("Link"),
-        help_text=_("Product Vendor Link")
+        verbose_name=_("Owner"),
+        help_text=_("Search request initiator"),
+    )
+    keyword = models.CharField(
+        max_length=255,
+        verbose_name=_("Search keyword"),
+        help_text=_("Max. length 255 characters."),
+    )
+    # hash field is being used to check if items have been updated from last fetching
+    hash = models.CharField(
+        max_length=32,
+        editable=False,
+        verbose_name=_("Hash"),
+        help_text=_("Hash that allows to check if search results were changed from last update.")
+    )
+    session = models.UUIDField(
+        default=None,
+        null=True,
+        editable=False,
+        verbose_name=_("Session UUID"),
+        help_text=_("Used to determine search query session.")
+    )
+    brand_types = models.CharField(
+        null=True,
+        blank=True,
+        max_length=1000,
+        verbose_name=_("Brand Types"),
+        help_text=_("Max. length 1000 characters")
+    )
+    compatibility = models.CharField(
+        null=True,
+        blank=True,
+        max_length=1000,
+        verbose_name=_("Compatibility"),
+        help_text=_("Max. length 1000 characters")
+    )
+    max_delivery_cost = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name=_("Max Delivery Cost"),
+        help_text=_("False if free shipping")
+    )
+    conditions = models.CharField(
+        null=True,
+        blank=True,
+        max_length=1000,
+        verbose_name=_("Conditions"),
+        help_text=_("Max. length 1000 characters")
+    )
+
+    def __str__(self):
+        return f"{self.keyword}: {self.hash}"
+
+
+class SearchIndex(CoreModel):
+    """
+        Search index model
+    """
+    search = models.ForeignKey(
+        'ebay.Search',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        help_text=_("Search id")
+    )
+    vendors = models.ManyToManyField(Vendor, blank=True)
+    top_product = models.ManyToManyField(Product, blank=True)
+    keywords = models.CharField(
+        unique=True,
+        max_length=255,
+        verbose_name=_("Search index keyword"),
+        help_text=_("Max. length 255 characters."),
+    )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Description"),
+        help_text=_("May contain HTML tags.")
+    )
+    image = models.URLField(
+        null=True,
+        verbose_name=_("Image url"),
+        help_text=_("Image URL")
     )
 
     class Meta:
         app_label = 'ebay'
-        verbose_name = "Vendor"
-        verbose_name_plural = "Vendors"
+        verbose_name = "Search index"
+        verbose_name_plural = "Search indexes"
 
     def __str__(self):
-        return self.name
+        return self.keyword
 
 
 class SearchProduct(CoreModel):
@@ -326,7 +328,6 @@ class SearchProduct(CoreModel):
         verbose_name=_("Product"),
         help_text="Many to one relations with Product table"
     )
-
 
     class Meta:
         app_label = "ebay"
@@ -391,12 +392,10 @@ class Seller(CoreModel):
         help_text=_("Feedback score of the product seller")
     )
 
-
     class Meta:
         app_label = 'ebay'
         verbose_name = "Seller"
         verbose_name_plural = "Sellers"
-
 
     def __str__(self):
         return self.username
@@ -413,10 +412,8 @@ class BrandType(CoreModel):
 
     active_default = models.BooleanField(default=False)
 
-
     def __str__(self):
         return f"Brand Type:{self.pk}:{self.name}"
-
 
     class Meta:
         app_label = 'ebay'
