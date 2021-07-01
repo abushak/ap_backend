@@ -1,5 +1,5 @@
 from celery import shared_task
-from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct, Search, Vendor
+from ebay.models import Product, ProductImage, Credential, Seller, SearchProduct, Search, Vendor, SearchIndex
 from ebay.utils import generate_hash
 
 from .client import AutoCorrectBrowseAPI
@@ -12,16 +12,20 @@ def get_vendor(name):
     vendor, created = Vendor.objects.update_or_create(
         name=name,
     )
-    return vendor.pk
+    return vendor
 
 
 @shared_task
 def parse_car_parts(keywords, search_id):
-    url = 'https://www.carparts.com/'
+    url = 'https://www.carparts.com/search?q='
     car_parts = CarParts()
     items = car_parts.find_goods(url, keywords.strip())
     images = None
     ebay_id = None
+    vendor = get_vendor("carparts.com")
+    if items:
+        search_index = SearchIndex.objects.filter(search=search_id).first()
+        search_index.vendors.add(vendor)
     for product in items:
         try:
             int(product.get('price', None))
@@ -41,7 +45,7 @@ def parse_car_parts(keywords, search_id):
                 "country": getattr(product, 'itemLocation', None),
                 "brand": product.get('brand', None),
                 "part_number": product.get('part_number', None),
-                "vendor_id": get_vendor("carparts.com")
+                "vendor_id": vendor.pk
             }, ebay_id, images, search_id, None))
 
 
@@ -52,6 +56,10 @@ def parse_partsgeek(keywords, search_id):
     items = partsgeek.find_goods(url, keywords)
     images = None
     ebay_id = None
+    vendor = get_vendor("partsgeek.com")
+    if items:
+        search_index = SearchIndex.objects.filter(search=search_id).first()
+        search_index.vendors.add(vendor)
     for product in items:
         create_product.apply_async((
             {
@@ -66,7 +74,7 @@ def parse_partsgeek(keywords, search_id):
                 "country": getattr(product, 'itemLocation', None),
                 "brand": product.get('brand', None),
                 "part_number": product.get('part_number', None),
-                "vendor_id": get_vendor("partsgeek.com")
+                "vendor_id": vendor.pk
             }, ebay_id, images, search_id, None))
 
 
@@ -77,6 +85,10 @@ def parse_carid(keywords, search_id):
     items = carid.find_goods(url, keywords)
     images = None
     ebay_id = None
+    vendor = get_vendor("carid.com")
+    if items:
+        search_index = SearchIndex.objects.filter(search=search_id).first()
+        search_index.vendors.add(vendor)
     for product in items:
         create_product.apply_async((
             {
@@ -91,12 +103,13 @@ def parse_carid(keywords, search_id):
                 "country": getattr(product, 'itemLocation', None),
                 "brand": product.get('brand', None),
                 "part_number": product.get('part_number', None),
-                "vendor_id": get_vendor("carid.com")
+                "vendor_id": vendor.pk
             }, ebay_id, images, search_id, None))
 
 
 @shared_task
 def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, pages_limit, owner_id, search_id):
+    vendor = get_vendor("ebay.com")
     api = AutoCorrectBrowseAPI(app_id, cert_id, **browse_api_parameters)
     query_counter = 2
     for n in range(pages_limit):
@@ -110,7 +123,8 @@ def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, page
 
         if not len(response):
             continue
-
+        search_index = SearchIndex.objects.filter(search=search_id).first()
+        search_index.vendors.add(vendor)
         for product in response[0].itemSummaries:
             # TODO: Create some sort of serializer/deserializer
             # itemId return string in format "v1|id|0", make sure that in other versions of the api the same
@@ -150,6 +164,7 @@ def call_ebay(app_id, cert_id, browse_api_parameters, data, per_page_limit, page
                         if getattr(product, 'itemAffiliateWebUrl', None) else product.itemWebUrl,
                     "thumbnail_url": product.thumbnailImages[0].imageUrl \
                         if getattr(product, 'thumbnailImages', None) else None,
+                    "vendor_id": vendor.pk,
                     # TODO: drop it if will not necessary
                     # ebay returns string representation so we need to convert to bool
                     # "top_rated_seller": True if product['sellerInfo']['topRatedSeller'] == "true" else False,
@@ -176,7 +191,6 @@ def create_product(p_map, ebay_id, images, search_id, seller_id) -> str:
         hash=hash,
         defaults={**p_map}
     )
-
     if product and search_id and Search.objects.filter(id=search_id).first():
         search_product = SearchProduct.objects.create(
             product=product, search=Search.objects.filter(id=search_id).first()

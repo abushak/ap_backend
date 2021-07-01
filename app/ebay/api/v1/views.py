@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from ebay.api.v1.serializers import SearchIdSerializer, SearchQuerySerializer, QueryValidationErrorSerializer
-from ebay.models import Search, SearchProduct
+from ebay.models import Search, SearchProduct, SearchIndex
 from ebay.services import EbayService, EbayServiceError
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ebay.tasks import parse_partsgeek, parse_carid, parse_car_parts
+
 
 
 class EbayProductDetailsView(APIView):
@@ -82,6 +83,10 @@ class EbaySearch(APIView):
                 compatibility=request.data.get('compatibility', None),
                 max_delivery_cost=request.data.get('maxDeliveryCost', False),
             )
+            search_index, created = SearchIndex.objects.get_or_create(
+                search=search,
+                keywords=request.data.get('query')
+            )
         try:
             ebay = EbayService(auto_save=True)
         except EbayServiceError as error:
@@ -95,26 +100,26 @@ class EbaySearch(APIView):
                 'conditions': ast.literal_eval(search.conditions)
             })
         if request.data.get('query', None) and call_ebay:
-            # try:
-            #     conditions = ebay.search(
-            #         keywords=request.data.get('query'),
-            #         brand_types=request.data.get('brand_types', None),
-            #         compatibility=request.data.get('compatibility', None),
-            #         max_delivery_cost=request.data.get('maxDeliveryCost', False),
-            #         item_filter=item_filter,
-            #         sort_order=request.data.get('sort_order', None),
-            #         owner_id=owner_id,
-            #         search_id=search.pk,
-            #         zipcode=zipcode
-            #     )
-            #     if conditions:
-            #         data.update({
-            #             'conditions': conditions
-            #         })
-            #         search.conditions = str(conditions)
-            #         search.save()
-            # except EbayServiceError as error:
-            #     raise ValidationError({"query": error.__str__()})
+            try:
+                conditions = ebay.search(
+                    keywords=request.data.get('query'),
+                    brand_types=request.data.get('brand_types', None),
+                    compatibility=request.data.get('compatibility', None),
+                    max_delivery_cost=request.data.get('maxDeliveryCost', False),
+                    item_filter=item_filter,
+                    sort_order=request.data.get('sort_order', None),
+                    owner_id=owner_id,
+                    search_id=search.pk,
+                    zipcode=zipcode
+                )
+                if conditions:
+                    data.update({
+                        'conditions': conditions
+                    })
+                    search.conditions = str(conditions)
+                    search.save()
+            except EbayServiceError as error:
+                raise ValidationError({"query": error.__str__()})
             try:
                 parse_partsgeek.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
             except:
