@@ -5,7 +5,6 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from seleniumwire import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
 
 PROXY = 'http://api.buyproxies.org/?a=showProxies&pid=153073&key=1b1d55ec3b1c3caad772aa4692f26bc4&port=12345'
 
@@ -56,8 +55,8 @@ class Scraper:
         userAgent = re.sub(pattern1, 'Firefox/87.0', userAgent)
         userAgent = re.sub(pattern2, 'Chrome/91.0.4472.106', userAgent)
         userAgent = re.sub(pattern3, 'Safari/605.1.15', userAgent)
-
-        # chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
+        # TODO: need to change this path, because of the deletion of this directory in the future
+        chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
         chrome_options = webdriver.ChromeOptions()
         chrome_options.headless = True
         chrome_options.add_argument('--headless')
@@ -67,8 +66,8 @@ class Scraper:
         options = {
             'proxy': proxies
         }
-        # chrome = webdriver.Chrome(options=chrome_options, executable_path=chromedriver, seleniumwire_options=options)
-        chrome = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options, seleniumwire_options=options)
+        chrome = webdriver.Chrome(options=chrome_options, executable_path=chromedriver, seleniumwire_options=options)
+        # chrome = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options, seleniumwire_options=options)
         chrome.set_window_size(1440, 900)
         return chrome, proxy
 
