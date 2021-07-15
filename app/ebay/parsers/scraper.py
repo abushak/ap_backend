@@ -61,7 +61,7 @@ class Scraper:
         # TODO: need to change this path, because of the deletion of this directory in the future
 
         # chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
-        chromedriver = Path(settings.CHROME_PATH)
+        chromedriver = settings.CHROME_PATH
         chrome_options = webdriver.ChromeOptions()
         chrome_options.headless = True
         chrome_options.add_argument('--headless')
@@ -71,7 +71,7 @@ class Scraper:
         options = {
             'proxy': proxies
         }
-        chrome = webdriver.Chrome(options=chrome_options, executable_path=chromedriver, seleniumwire_options=options)
+        chrome = webdriver.Chrome(options=chrome_options, seleniumwire_options=options)
         # chrome = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options, seleniumwire_options=options)
         chrome.set_window_size(1440, 900)
         return chrome, proxy
