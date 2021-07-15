@@ -5,8 +5,8 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from seleniumwire import webdriver
+from django.conf import settings
 
-from app.autoparts.settings import CHROME_PATH
 
 PROXY = 'http://api.buyproxies.org/?a=showProxies&pid=153073&key=1b1d55ec3b1c3caad772aa4692f26bc4&port=12345'
 
@@ -60,7 +60,7 @@ class Scraper:
         # TODO: need to change this path, because of the deletion of this directory in the future
 
         # chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
-        chromedriver = CHROME_PATH
+        chromedriver = settings.CHROME_PATH
         chrome_options = webdriver.ChromeOptions()
         chrome_options.headless = True
         chrome_options.add_argument('--headless')
