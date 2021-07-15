@@ -1,5 +1,6 @@
 import re
 from random import choice
+from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
@@ -60,7 +61,7 @@ class Scraper:
         # TODO: need to change this path, because of the deletion of this directory in the future
 
         # chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
-        chromedriver = settings.CHROME_PATH
+        chromedriver = Path(settings.CHROME_PATH)
         chrome_options = webdriver.ChromeOptions()
         chrome_options.headless = True
         chrome_options.add_argument('--headless')
