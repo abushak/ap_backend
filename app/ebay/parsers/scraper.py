@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 from seleniumwire import webdriver
 
+from app.autoparts.settings import CHROME_PATH
+
 PROXY = 'http://api.buyproxies.org/?a=showProxies&pid=153073&key=1b1d55ec3b1c3caad772aa4692f26bc4&port=12345'
 
 
@@ -56,7 +58,9 @@ class Scraper:
         userAgent = re.sub(pattern2, 'Chrome/91.0.4472.106', userAgent)
         userAgent = re.sub(pattern3, 'Safari/605.1.15', userAgent)
         # TODO: need to change this path, because of the deletion of this directory in the future
-        chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
+
+        # chromedriver = r'/home/auto/sites/findcar.parts/delete_this/chromedriver'
+        chromedriver = CHROME_PATH
         chrome_options = webdriver.ChromeOptions()
         chrome_options.headless = True
         chrome_options.add_argument('--headless')

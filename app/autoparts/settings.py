@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 from pathlib import Path
-
+import os
 import environ
 import sentry_sdk
 from google.oauth2 import service_account
@@ -28,6 +28,7 @@ env = environ.Env()
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str("SECRET_KEY")
+CHROME_PATH = env.str("CHROME_PATH")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
