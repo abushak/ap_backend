@@ -64,72 +64,72 @@ class EbaySearch(APIView):
         owner_id = None if request.user.is_anonymous else request.user.pk
 
         # date_from = datetime.datetime.now() - datetime.timedelta(days=2)
-        search = Search.objects.filter(
+        # search = Search.objects.filter(
+        #     keyword=request.data.get('query'),
+        #     brand_types=request.data.get('brand_types', None),
+        #     compatibility=request.data.get('compatibility', None),
+        #     max_delivery_cost=request.data.get('maxDeliveryCost', False),
+        #     # updated_at__gte=date_from
+        # ).first()
+        # call_ebay = False
+        # if not search or not SearchProduct.objects.filter(search=search).all():
+        call_ebay = True
+        search = Search.objects.create(
             keyword=request.data.get('query'),
+            owner_id=owner_id,
             brand_types=request.data.get('brand_types', None),
             compatibility=request.data.get('compatibility', None),
             max_delivery_cost=request.data.get('maxDeliveryCost', False),
-            # updated_at__gte=date_from
-        ).first()
-        call_ebay = False
-        if not search or not SearchProduct.objects.filter(search=search).all():
-            call_ebay = True
-            search = Search.objects.create(
-                keyword=request.data.get('query'),
-                owner_id=owner_id,
-                brand_types=request.data.get('brand_types', None),
-                compatibility=request.data.get('compatibility', None),
-                max_delivery_cost=request.data.get('maxDeliveryCost', False),
-            )
-            search_index, created = SearchIndex.objects.get_or_create(
-                search=search,
-                keywords=request.data.get('query')
-            )
-            try:
-                ebay = EbayService(auto_save=True)
-            except EbayServiceError as error:
-                raise ValidationError({"ebay": error.__str__()})
-            data = {
-                "search_id": search.pk
-            }
+        )
+        search_index, created = SearchIndex.objects.get_or_create(
+            search=search,
+            keywords=request.data.get('query')
+        )
+        try:
+            ebay = EbayService(auto_save=True)
+        except EbayServiceError as error:
+            raise ValidationError({"ebay": error.__str__()})
+        data = {
+            "search_id": search.pk
+        }
 
-            if search.conditions:
-                data.update({
-                    'conditions': ast.literal_eval(search.conditions)
-                })
-            if request.data.get('query', None) and call_ebay:
-                try:
-                    conditions = ebay.search(
-                        keywords=request.data.get('query'),
-                        brand_types=request.data.get('brand_types', None),
-                        compatibility=request.data.get('compatibility', None),
-                        max_delivery_cost=request.data.get('maxDeliveryCost', False),
-                        item_filter=item_filter,
-                        sort_order=request.data.get('sort_order', None),
-                        owner_id=owner_id,
-                        search_id=search.pk,
-                        zipcode=zipcode
-                    )
-                    if conditions:
-                        data.update({
-                            'conditions': conditions
-                        })
-                        search.conditions = str(conditions)
-                        search.save()
-                except EbayServiceError as error:
-                    raise ValidationError({"query": error.__str__()})
-                try:
-                    parse_partsgeek.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
-                except:
-                    raise ValidationError({"partsgeek": "Something went wrong during parsing PartsGeek"})
-                try:
-                    parse_carid.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
-                except:
-                    raise ValidationError({"carid": "Something went wrong during parsing CarId"})
-                try:
-                    parse_car_parts.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
-                except:
-                    raise ValidationError({"parse_car_parts": "Something went wrong during parsing CarParts"})
-            return Response(data=data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(data={"search_id": search.pk}, status=status.HTTP_201_CREATED)
+        if search.conditions:
+            data.update({
+                'conditions': ast.literal_eval(search.conditions)
+            })
+        if request.data.get('query', None) and call_ebay:
+            try:
+                conditions = ebay.search(
+                    keywords=request.data.get('query'),
+                    brand_types=request.data.get('brand_types', None),
+                    compatibility=request.data.get('compatibility', None),
+                    max_delivery_cost=request.data.get('maxDeliveryCost', False),
+                    item_filter=item_filter,
+                    sort_order=request.data.get('sort_order', None),
+                    owner_id=owner_id,
+                    search_id=search.pk,
+                    zipcode=zipcode
+                )
+                if conditions:
+                    data.update({
+                        'conditions': conditions
+                    })
+                    search.conditions = str(conditions)
+                    search.save()
+            except EbayServiceError as error:
+                raise ValidationError({"query": error.__str__()})
+            try:
+                parse_partsgeek.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
+            except:
+                raise ValidationError({"partsgeek": "Something went wrong during parsing PartsGeek"})
+            try:
+                parse_carid.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
+            except:
+                raise ValidationError({"carid": "Something went wrong during parsing CarId"})
+            try:
+                parse_car_parts.apply_async((request.data.get('query'), search.pk), countdown=0.00168)
+            except:
+                raise ValidationError({"parse_car_parts": "Something went wrong during parsing CarParts"})
+        return Response(data=data, status=status.HTTP_201_CREATED)
+        # else:
+        #     return Response(data={"search_id": search.pk}, status=status.HTTP_201_CREATED)
