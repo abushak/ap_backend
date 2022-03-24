@@ -287,7 +287,6 @@ class SearchIndex(CoreModel):
     vendors = models.ManyToManyField(Vendor, blank=True)
     top_product = models.ManyToManyField(Product, blank=True)
     keywords = models.CharField(
-        unique=True,
         max_length=255,
         verbose_name=_("Search index keyword"),
         help_text=_("Max. length 255 characters."),
